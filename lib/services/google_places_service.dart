@@ -23,7 +23,7 @@ class GooglePlacesService {
       throw Exception('GOOGLE_MAPS_API_KEY が .env に設定されていません');
     }
 
-    final includedTypes = _includedTypesForCategory(category);
+    final includedTypes = _includedTypesForCategoryLabel(category);
 
     final response = await http.post(
       Uri.parse(_endpoint),
@@ -113,7 +113,22 @@ class GooglePlacesService {
     }).toList();
   }
 
-  static List<String> _includedTypesForCategory(String category) {
+  static List<String> _includedTypesForCategoryLabel(String categoryLabel) {
+    if (categoryLabel == '気にしない') {
+      return ['restaurant', 'cafe'];
+    }
+
+    final categories = categoryLabel.split('・');
+    final types = <String>{};
+
+    for (final category in categories) {
+      types.addAll(_includedTypesForSingleCategory(category));
+    }
+
+    return types.toList();
+  }
+
+  static List<String> _includedTypesForSingleCategory(String category) {
     switch (category) {
       case '和食':
         return ['japanese_restaurant'];
@@ -125,23 +140,24 @@ class GooglePlacesService {
         return ['cafe'];
       case 'ファストフード':
         return ['fast_food_restaurant'];
-      case '気にしない':
-        return ['restaurant', 'cafe'];
       default:
         return ['restaurant'];
     }
   }
 
   static List<String> _categoriesFromTypes(List<String> types) {
-    if (types.contains('japanese_restaurant')) return ['和食'];
+    final categories = <String>[];
+
+    if (types.contains('japanese_restaurant')) categories.add('和食');
     if (types.contains('italian_restaurant') ||
         types.contains('american_restaurant')) {
-      return ['洋食'];
+      categories.add('洋食');
     }
-    if (types.contains('chinese_restaurant')) return ['中華'];
-    if (types.contains('cafe')) return ['カフェ'];
-    if (types.contains('fast_food_restaurant')) return ['ファストフード'];
-    return ['その他'];
+    if (types.contains('chinese_restaurant')) categories.add('中華');
+    if (types.contains('cafe')) categories.add('カフェ');
+    if (types.contains('fast_food_restaurant')) categories.add('ファストフード');
+
+    return categories.isEmpty ? ['その他'] : categories;
   }
 
   static List<String> _tagsFromTypes(List<String> types) {

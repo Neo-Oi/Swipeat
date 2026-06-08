@@ -15,27 +15,14 @@ class CompanionSelectScreen extends StatefulWidget {
 class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
   String? selectedCompanion;
   String? selectedDistance;
-  String? selectedCategory;
+  final Set<String> selectedCategories = {};
 
   Position? currentPosition;
   bool isLoading = false;
   String? errorMessage;
 
-  final List<String> companions = [
-    '一人',
-    '友達',
-    '恋人',
-    '家族',
-    '職場',
-  ];
-
-  final List<String> distances = [
-    '300m以内',
-    '500m以内',
-    '1km以内',
-    '気にしない',
-  ];
-
+  final List<String> companions = ['一人', '友達', '恋人', '家族', '職場'];
+  final List<String> distances = ['300m以内', '500m以内', '1km以内', '気にしない'];
   final List<String> categories = [
     '和食',
     '洋食',
@@ -78,10 +65,18 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     return 2000;
   }
 
+  String selectedCategoryLabel() {
+    if (selectedCategories.contains('気にしない')) {
+      return '気にしない';
+    }
+
+    return selectedCategories.join('・');
+  }
+
   Future<void> searchRestaurants() async {
     if (selectedCompanion == null ||
         selectedDistance == null ||
-        selectedCategory == null) {
+        selectedCategories.isEmpty) {
       return;
     }
 
@@ -98,7 +93,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     });
 
     try {
-      var usedCategory = selectedCategory!;
+      var usedCategory = selectedCategoryLabel();
       var usedDistanceLabel = selectedDistance!;
       var noticeMessage = '';
 
@@ -107,7 +102,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         latitude: currentPosition!.latitude,
         longitude: currentPosition!.longitude,
         radiusMeters: distanceLimit(selectedDistance!),
-        category: selectedCategory!,
+        category: usedCategory,
         openNowOnly: true,
       );
 
@@ -124,7 +119,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
           latitude: currentPosition!.latitude,
           longitude: currentPosition!.longitude,
           radiusMeters: relaxedDistanceLimit(selectedDistance!),
-          category: selectedCategory!,
+          category: usedCategory,
           openNowOnly: true,
         );
 
@@ -133,7 +128,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
             .toList();
       }
 
-      if (googleRestaurants.isEmpty && selectedCategory != '気にしない') {
+      if (googleRestaurants.isEmpty && usedCategory != '気にしない') {
         usedCategory = '気にしない';
         noticeMessage = '候補が少なかったため、距離とカテゴリ条件を広げました。';
 
@@ -184,15 +179,12 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
       padding: const EdgeInsets.only(top: 20, bottom: 10),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
 
-  Widget buildChoiceList({
+  Widget buildSingleChoiceList({
     required List<String> items,
     required String? selectedValue,
     required void Function(String value) onSelected,
@@ -214,10 +206,46 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     );
   }
 
+  Widget buildCategoryChoiceList() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: categories.map((category) {
+        final isSelected = selectedCategories.contains(category);
+
+        return FilterChip(
+          label: Text(category),
+          selected: isSelected,
+          onSelected: isLoading
+              ? null
+              : (selected) {
+                  setState(() {
+                    if (category == '気にしない') {
+                      selectedCategories.clear();
+                      if (selected) {
+                        selectedCategories.add(category);
+                      }
+                      return;
+                    }
+
+                    selectedCategories.remove('気にしない');
+
+                    if (selected) {
+                      selectedCategories.add(category);
+                    } else {
+                      selectedCategories.remove(category);
+                    }
+                  });
+                },
+        );
+      }).toList(),
+    );
+  }
+
   bool get canSearch {
     return selectedCompanion != null &&
         selectedDistance != null &&
-        selectedCategory != null &&
+        selectedCategories.isNotEmpty &&
         !isLoading;
   }
 
@@ -235,10 +263,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
             const Text(
               '今の条件を選んでください',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
@@ -247,7 +272,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
               style: const TextStyle(fontSize: 13),
             ),
             buildSectionTitle('誰と行く？'),
-            buildChoiceList(
+            buildSingleChoiceList(
               items: companions,
               selectedValue: selectedCompanion,
               onSelected: (value) {
@@ -257,7 +282,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
               },
             ),
             buildSectionTitle('どれくらい近くがいい？'),
-            buildChoiceList(
+            buildSingleChoiceList(
               items: distances,
               selectedValue: selectedDistance,
               onSelected: (value) {
@@ -266,19 +291,11 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
                 });
               },
             ),
-            buildSectionTitle('食べたいカテゴリは？'),
-            buildChoiceList(
-              items: categories,
-              selectedValue: selectedCategory,
-              onSelected: (value) {
-                setState(() {
-                  selectedCategory = value;
-                });
-              },
-            ),
+            buildSectionTitle('食べたいカテゴリは？ 複数選択できます'),
+            buildCategoryChoiceList(),
             const SizedBox(height: 20),
             const Text(
-              '※ 営業中の店舗だけを表示します',
+              '※ 選んだカテゴリのうち、どれか1つに当てはまる営業中の店舗を表示します',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13),
             ),
@@ -287,10 +304,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
               Text(
                 errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
             ],
             const SizedBox(height: 32),
