@@ -23,7 +23,7 @@ class GooglePlacesService {
       throw Exception('GOOGLE_MAPS_API_KEY が .env に設定されていません');
     }
 
-    final includedTypes = _includedTypesForCategoryLabel(category);
+    final includedTypes = _includedTypesForMoodLabel(category);
 
     final response = await http.post(
       Uri.parse(_endpoint),
@@ -113,33 +113,39 @@ class GooglePlacesService {
     }).toList();
   }
 
-  static List<String> _includedTypesForCategoryLabel(String categoryLabel) {
-    if (categoryLabel == '気にしない') {
+  static List<String> _includedTypesForMoodLabel(String moodLabel) {
+    if (moodLabel == '気にしない') {
       return ['restaurant', 'cafe'];
     }
 
-    final categories = categoryLabel.split('・');
+    final moods = moodLabel.split('・');
     final types = <String>{};
 
-    for (final category in categories) {
-      types.addAll(_includedTypesForSingleCategory(category));
+    for (final mood in moods) {
+      types.addAll(_includedTypesForSingleMood(mood));
     }
 
     return types.toList();
   }
 
-  static List<String> _includedTypesForSingleCategory(String category) {
-    switch (category) {
-      case '和食':
-        return ['japanese_restaurant'];
-      case '洋食':
-        return ['italian_restaurant', 'american_restaurant'];
-      case '中華':
-        return ['chinese_restaurant'];
-      case 'カフェ':
-        return ['cafe'];
-      case 'ファストフード':
-        return ['fast_food_restaurant'];
+  static List<String> _includedTypesForSingleMood(String mood) {
+    switch (mood) {
+      case 'さっぱり':
+        return ['japanese_restaurant', 'cafe'];
+      case 'ガッツリ':
+        return [
+          'restaurant',
+          'chinese_restaurant',
+          'fast_food_restaurant',
+        ];
+      case 'すぐ食べたい':
+        return ['fast_food_restaurant', 'cafe'];
+      case 'ゆっくりしたい':
+        return ['cafe', 'restaurant'];
+      case '軽め':
+        return ['cafe', 'bakery'];
+      case 'カフェ気分':
+        return ['cafe', 'bakery'];
       default:
         return ['restaurant'];
     }
@@ -155,6 +161,7 @@ class GooglePlacesService {
     }
     if (types.contains('chinese_restaurant')) categories.add('中華');
     if (types.contains('cafe')) categories.add('カフェ');
+    if (types.contains('bakery')) categories.add('ベーカリー');
     if (types.contains('fast_food_restaurant')) categories.add('ファストフード');
 
     return categories.isEmpty ? ['その他'] : categories;
@@ -164,6 +171,7 @@ class GooglePlacesService {
     final tags = <String>[];
 
     if (types.contains('cafe')) tags.add('カフェ');
+    if (types.contains('bakery')) tags.add('ベーカリー');
     if (types.contains('restaurant')) tags.add('飲食店');
     if (types.contains('japanese_restaurant')) tags.add('和食');
     if (types.contains('chinese_restaurant')) tags.add('中華');
