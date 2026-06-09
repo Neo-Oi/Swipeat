@@ -30,10 +30,15 @@ class RecommendationScreen extends StatefulWidget {
 }
 
 class _RecommendationScreenState extends State<RecommendationScreen> {
+  static const int pageSize = 5;
+
   int currentIndex = 0;
+  int pageStartIndex = 0;
   double dragOffsetX = 0;
-  bool isFinished = false;
+
+  bool isPageFinished = false;
   bool isReloading = false;
+
   String? reloadErrorMessage;
   Position? currentPosition;
 
@@ -62,6 +67,15 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     setState(() {
       currentPosition = position;
     });
+  }
+
+  int get currentPageEndIndex {
+    final endIndex = pageStartIndex + pageSize;
+    return endIndex > restaurants.length ? restaurants.length : endIndex;
+  }
+
+  bool get hasNextPage {
+    return currentPageEndIndex < restaurants.length;
   }
 
   Restaurant get currentRestaurant {
@@ -124,8 +138,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       setState(() {
         restaurants = openRestaurants;
         currentIndex = 0;
+        pageStartIndex = 0;
         dragOffsetX = 0;
-        isFinished = false;
+        isPageFinished = false;
         isReloading = false;
       });
 
@@ -163,8 +178,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     }
 
     if (widget.category != '気にしない' &&
-        restaurant.categories.contains(widget.category)) {
-      reasons.add('${widget.category}の条件に合っている');
+        restaurant.categories.any((category) => widget.category.contains(category))) {
+      reasons.add('選んだカテゴリのいずれかに合っている');
     }
 
     if (reasons.isEmpty) {
@@ -181,10 +196,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   void showNextRestaurant() {
-    if (currentIndex >= restaurants.length - 1) {
+    if (currentIndex >= currentPageEndIndex - 1) {
       setState(() {
         dragOffsetX = 0;
-        isFinished = true;
+        isPageFinished = true;
       });
       return;
     }
@@ -199,11 +214,27 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     });
   }
 
-  void restartCurrentResults() {
+  void restartCurrentPage() {
     setState(() {
-      currentIndex = 0;
+      currentIndex = pageStartIndex;
       dragOffsetX = 0;
-      isFinished = false;
+      isPageFinished = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      resetCardScroll();
+    });
+  }
+
+  void showNextPage() {
+    if (!hasNextPage) return;
+
+    setState(() {
+      pageStartIndex = currentPageEndIndex;
+      currentIndex = pageStartIndex;
+      dragOffsetX = 0;
+      isPageFinished = false;
+      reloadErrorMessage = null;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -314,28 +345,32 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
-  Widget buildFinishedView() {
+  Widget buildPageFinishedView() {
+    final hasMore = hasNextPage;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('候補終了')),
+      appBar: AppBar(title: const Text('おすすめ終了')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              '候補をすべて見終わりました',
+            Text(
+              hasMore ? '今日のおすすめはここまでです' : '候補をすべて見終わりました',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '同じ候補をもう一度見るか、再検索してください。',
+            Text(
+              hasMore
+                  ? 'この中で決めるか、まだ迷う場合は次の候補を見られます。'
+                  : '同じ候補をもう一度見るか、再検索してください。',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
             if (reloadErrorMessage != null) ...[
               const SizedBox(height: 16),
@@ -350,9 +385,16 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             ],
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: restartCurrentResults,
-              child: const Text('もう一度見る'),
+              onPressed: restartCurrentPage,
+              child: const Text('この5件をもう一度見る'),
             ),
+            if (hasMore) ...[
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: showNextPage,
+                child: const Text('まだ迷う'),
+              ),
+            ],
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: isReloading ? null : reloadRestaurants,
@@ -377,8 +419,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       return buildEmptyView();
     }
 
-    if (isFinished) {
-      return buildFinishedView();
+    if (isPageFinished) {
+      return buildPageFinishedView();
     }
 
     final restaurant = currentRestaurant;
