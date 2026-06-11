@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (_) => RecommendationScreen(
             companion: '指定なし',
             budget: '指定なし',
-            distance: '気にしない',
+            distance: '1.5km以内',
             category: 'ランダム提案',
             restaurants: openRestaurants,
           ),
@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void goToConditionSearch() {
+  void openDistanceSearch() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -94,7 +94,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Image.asset(
+                  'assets/images/swipeat_icon.png',
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             const Text(
               'Swipeat',
               textAlign: TextAlign.center,
@@ -118,15 +130,24 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15),
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 12),
+            const Text(
+              '※ 営業中のお店のみ表示するため、朝や深夜は候補が少なくなる場合があります。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: isLoading ? null : startRandomRecommendation,
               child: Text(isLoading ? '提案中...' : '今すぐ提案'),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: isLoading ? null : goToConditionSearch,
-              child: const Text('条件をつけて探す'),
+              onPressed: isLoading ? null : openDistanceSearch,
+              child: const Text('距離を選んで探す'),
             ),
             if (errorMessage != null) ...[
               const SizedBox(height: 24),
@@ -141,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
             const SizedBox(height: 40),
             const Text(
-              '迷ったら、まずは提案を見る。条件を絞りたい時だけ検索できます。',
+              '迷ったら、まずは提案を見る。少ない候補から短時間で決めるためのアプリです。',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13),
             ),
