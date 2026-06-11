@@ -13,26 +13,17 @@ class CompanionSelectScreen extends StatefulWidget {
 }
 
 class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
-  String? selectedCompanion;
   String? selectedDistance;
-  final Set<String> selectedMoods = {};
 
   Position? currentPosition;
   bool isLoading = false;
   String? errorMessage;
 
-  final List<String> companions = ['一人', '友達', '恋人', '家族', '職場'];
-
-  final List<String> distances = ['300m以内', '500m以内', '1km以内', '気にしない'];
-
-  final List<String> moods = [
-    'さっぱり',
-    'ガッツリ',
-    'すぐ食べたい',
-    'ゆっくりしたい',
-    '軽め',
-    'カフェ気分',
-    '気にしない',
+  final List<String> distances = [
+    '300m以内',
+    '500m以内',
+    '1km以内',
+    '1.5km以内',
   ];
 
   @override
@@ -55,6 +46,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     if (distance == '300m以内') return 300;
     if (distance == '500m以内') return 500;
     if (distance == '1km以内') return 1000;
+    if (distance == '1.5km以内') return 1500;
+
     return 1500;
   }
 
@@ -68,18 +61,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     return 2000;
   }
 
-  String selectedMoodLabel() {
-    if (selectedMoods.contains('気にしない')) {
-      return '気にしない';
-    }
-
-    return selectedMoods.join('・');
-  }
-
   Future<void> searchRestaurants() async {
-    if (selectedCompanion == null ||
-        selectedDistance == null ||
-        selectedMoods.isEmpty) {
+    if (selectedDistance == null) {
       return;
     }
 
@@ -96,7 +79,6 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     });
 
     try {
-      var usedMood = selectedMoodLabel();
       var usedDistanceLabel = selectedDistance!;
       var noticeMessage = '';
 
@@ -105,7 +87,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         latitude: currentPosition!.latitude,
         longitude: currentPosition!.longitude,
         radiusMeters: distanceLimit(selectedDistance!),
-        category: usedMood,
+        category: '気にしない',
         openNowOnly: true,
       );
 
@@ -114,33 +96,17 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
           .toList();
 
       if (googleRestaurants.isEmpty) {
-        usedDistanceLabel = '${relaxedDistanceLimit(selectedDistance!)}m以内';
+        final relaxedLimit = relaxedDistanceLimit(selectedDistance!);
+
+        usedDistanceLabel = '${relaxedLimit}m以内';
         noticeMessage = '候補が少なかったため、距離条件を広げました。';
 
         googleRestaurants =
             await GooglePlacesService.searchNearbyRestaurants(
           latitude: currentPosition!.latitude,
           longitude: currentPosition!.longitude,
-          radiusMeters: relaxedDistanceLimit(selectedDistance!),
-          category: usedMood,
-          openNowOnly: true,
-        );
-
-        googleRestaurants = googleRestaurants
-            .where((restaurant) => restaurant.isOpenNow == true)
-            .toList();
-      }
-
-      if (googleRestaurants.isEmpty && usedMood != '気にしない') {
-        usedMood = '気にしない';
-        noticeMessage = '候補が少なかったため、距離と気分条件を広げました。';
-
-        googleRestaurants =
-            await GooglePlacesService.searchNearbyRestaurants(
-          latitude: currentPosition!.latitude,
-          longitude: currentPosition!.longitude,
-          radiusMeters: relaxedDistanceLimit(selectedDistance!),
-          category: usedMood,
+          radiusMeters: relaxedLimit,
+          category: '気にしない',
           openNowOnly: true,
         );
 
@@ -155,10 +121,10 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => RecommendationScreen(
-            companion: selectedCompanion!,
+            companion: '指定なし',
             budget: '指定なし',
             distance: usedDistanceLabel,
-            category: usedMood,
+            category: '気にしない',
             noticeMessage: noticeMessage,
             restaurants: googleRestaurants,
           ),
@@ -209,54 +175,15 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     );
   }
 
-  Widget buildMoodChoiceList() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: moods.map((mood) {
-        final isSelected = selectedMoods.contains(mood);
-
-        return FilterChip(
-          label: Text(mood),
-          selected: isSelected,
-          onSelected: isLoading
-              ? null
-              : (selected) {
-                  setState(() {
-                    if (mood == '気にしない') {
-                      selectedMoods.clear();
-                      if (selected) {
-                        selectedMoods.add(mood);
-                      }
-                      return;
-                    }
-
-                    selectedMoods.remove('気にしない');
-
-                    if (selected) {
-                      selectedMoods.add(mood);
-                    } else {
-                      selectedMoods.remove(mood);
-                    }
-                  });
-                },
-        );
-      }).toList(),
-    );
-  }
-
   bool get canSearch {
-    return selectedCompanion != null &&
-        selectedDistance != null &&
-        selectedMoods.isNotEmpty &&
-        !isLoading;
+    return selectedDistance != null && !isLoading;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('条件入力'),
+        title: const Text('距離を選択'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -264,9 +191,15 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              '今の条件を選んでください',
+              'どれくらい近くで探しますか？',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '現在地周辺の営業中のお店から、選んだ距離内で提案します。',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
             Text(
@@ -274,17 +207,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13),
             ),
-            buildSectionTitle('誰と行く？'),
-            buildSingleChoiceList(
-              items: companions,
-              selectedValue: selectedCompanion,
-              onSelected: (value) {
-                setState(() {
-                  selectedCompanion = value;
-                });
-              },
-            ),
-            buildSectionTitle('どれくらい近くがいい？'),
+            buildSectionTitle('探す距離'),
             buildSingleChoiceList(
               items: distances,
               selectedValue: selectedDistance,
@@ -293,14 +216,6 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
                   selectedDistance = value;
                 });
               },
-            ),
-            buildSectionTitle('今の気分は？ 複数選択できます'),
-            buildMoodChoiceList(),
-            const SizedBox(height: 20),
-            const Text(
-              '※ 選んだ気分のうち、どれか1つに近い営業中の店舗を表示します',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
             ),
             if (errorMessage != null) ...[
               const SizedBox(height: 16),
@@ -313,7 +228,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: canSearch ? searchRestaurants : null,
-              child: Text(isLoading ? '取得中...' : 'おすすめを見る'),
+              child: Text(isLoading ? '取得中...' : 'この距離で探す'),
             ),
           ],
         ),

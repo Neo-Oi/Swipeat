@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/restaurant.dart';
@@ -10,6 +8,8 @@ class GooglePlacesService {
   static const String _endpoint =
       'https://places.googleapis.com/v1/places:searchNearby';
 
+  static const String _apiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+
   static Future<List<Restaurant>> searchNearbyRestaurants({
     required double latitude,
     required double longitude,
@@ -17,10 +17,11 @@ class GooglePlacesService {
     required String category,
     required bool openNowOnly,
   }) async {
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
-
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GOOGLE_MAPS_API_KEY が .env に設定されていません');
+    if (_apiKey.isEmpty) {
+      throw Exception(
+        'GOOGLE_MAPS_API_KEY が未設定です。'
+        'flutter run / flutter build 時に --dart-define=GOOGLE_MAPS_API_KEY=xxxxx を指定してください。',
+      );
     }
 
     final includedTypes = _includedTypesForMoodLabel(category);
@@ -29,7 +30,7 @@ class GooglePlacesService {
       Uri.parse(_endpoint),
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
+        'X-Goog-Api-Key': _apiKey,
         'X-Goog-FieldMask':
             'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.currentOpeningHours,places.types,places.photos',
       },
@@ -90,7 +91,7 @@ class GooglePlacesService {
           : 'https://places.googleapis.com/v1/$photoName/media'
               '?maxHeightPx=600'
               '&maxWidthPx=800'
-              '&key=$apiKey';
+              '&key=$_apiKey';
 
       return Restaurant(
         name: placeMap['displayName']?['text']?.toString() ?? '名称不明',
@@ -155,10 +156,12 @@ class GooglePlacesService {
     final categories = <String>[];
 
     if (types.contains('japanese_restaurant')) categories.add('和食');
+
     if (types.contains('italian_restaurant') ||
         types.contains('american_restaurant')) {
       categories.add('洋食');
     }
+
     if (types.contains('chinese_restaurant')) categories.add('中華');
     if (types.contains('cafe')) categories.add('カフェ');
     if (types.contains('bakery')) categories.add('ベーカリー');
