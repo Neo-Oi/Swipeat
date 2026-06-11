@@ -32,14 +32,16 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     loadCurrentPosition();
   }
 
-  Future<void> loadCurrentPosition() async {
+  Future<Position?> loadCurrentPosition() async {
     final position = await LocationService.getCurrentPosition();
 
-    if (!mounted) return;
+    if (!mounted) return null;
 
     setState(() {
       currentPosition = position;
     });
+
+    return position;
   }
 
   int distanceLimit(String distance) {
@@ -66,26 +68,33 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
       return;
     }
 
-    if (currentPosition == null) {
-      setState(() {
-        errorMessage = '現在地を取得できませんでした。位置情報の許可を確認してください。';
-      });
-      return;
-    }
-
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
+      Position? position = currentPosition;
+
+      position ??= await loadCurrentPosition();
+
+      if (position == null) {
+        if (!mounted) return;
+
+        setState(() {
+          errorMessage = '現在地を取得できませんでした。位置情報の許可を確認してください。';
+          isLoading = false;
+        });
+        return;
+      }
+
       var usedDistanceLabel = selectedDistance!;
       var noticeMessage = '';
 
       var googleRestaurants =
           await GooglePlacesService.searchNearbyRestaurants(
-        latitude: currentPosition!.latitude,
-        longitude: currentPosition!.longitude,
+        latitude: position.latitude,
+        longitude: position.longitude,
         radiusMeters: distanceLimit(selectedDistance!),
         category: '気にしない',
         openNowOnly: true,
@@ -93,7 +102,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
 
       googleRestaurants = googleRestaurants
           .where((restaurant) => restaurant.isOpenNow == true)
-          .toList();
+          .toList()
+        ..shuffle();
 
       if (googleRestaurants.isEmpty) {
         final relaxedLimit = relaxedDistanceLimit(selectedDistance!);
@@ -103,8 +113,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
 
         googleRestaurants =
             await GooglePlacesService.searchNearbyRestaurants(
-          latitude: currentPosition!.latitude,
-          longitude: currentPosition!.longitude,
+          latitude: position.latitude,
+          longitude: position.longitude,
           radiusMeters: relaxedLimit,
           category: '気にしない',
           openNowOnly: true,
@@ -112,7 +122,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
 
         googleRestaurants = googleRestaurants
             .where((restaurant) => restaurant.isOpenNow == true)
-            .toList();
+            .toList()
+          ..shuffle();
       }
 
       if (!mounted) return;
@@ -131,6 +142,8 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         ),
       );
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         errorMessage = error.toString();
       });
@@ -179,6 +192,18 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     return selectedDistance != null && !isLoading;
   }
 
+  String get locationStatusText {
+    if (isLoading && currentPosition == null) {
+      return '現在地：取得中';
+    }
+
+    if (currentPosition == null) {
+      return '現在地：未取得（検索時に取得します）';
+    }
+
+    return '現在地：取得済み';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,7 +228,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              currentPosition == null ? '現在地：取得中または未許可' : '現在地：取得済み',
+              locationStatusText,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13),
             ),
@@ -214,6 +239,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
               onSelected: (value) {
                 setState(() {
                   selectedDistance = value;
+                  errorMessage = null;
                 });
               },
             ),
