@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'services/ad_service.dart';
 import 'screens/home_screen.dart';
 
 void main() {
+  AdMobService.instance.initialize();
   runApp(const SwipeatApp());
 }
 

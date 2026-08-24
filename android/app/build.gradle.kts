@@ -23,6 +23,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Debug は Google のテスト App ID。Release は ADMOB_APP_ID 環境変数で
+        // 本番 App ID を注入し、Dart ソースへ秘密値を置かない。
+        manifestPlaceholders["ADMOB_APP_ID"] =
+            System.getenv("ADMOB_APP_ID")
+                ?: "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
@@ -30,6 +36,18 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            val releaseAdmobAppId = System.getenv("ADMOB_APP_ID")
+            if (
+                releaseAdmobAppId.isNullOrBlank() &&
+                    gradle.startParameter.taskNames.any {
+                        it.contains("release", ignoreCase = true)
+                    }
+            ) {
+                throw GradleException("ADMOB_APP_ID must be set for release builds")
+            }
+            manifestPlaceholders["ADMOB_APP_ID"] =
+                releaseAdmobAppId
+                    ?: "ca-app-pub-3940256099942544~3347511713"
         }
     }
 }
