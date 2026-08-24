@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/restaurant.dart';
-import '../services/google_places_service.dart';
+import '../services/ad_service.dart';
 import '../services/candidate_pool.dart';
+import '../services/google_places_service.dart';
 import '../services/location_service.dart';
 import '../utils/distance_calculator.dart';
 import 'decision_screen.dart';
@@ -40,6 +41,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   String? reloadErrorMessage;
   Position? currentPosition;
+
+  static const AdService adService = AdService();
 
   late CandidatePool candidatePool;
 
@@ -329,6 +332,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Widget buildPageFinishedView() {
     final hasMore = hasNextPage;
     final isPremium = widget.poolMode == CandidatePoolMode.premium;
+    final showBreakAd = adService.shouldShowBreakAd(
+      mode: widget.poolMode,
+      completedCount: candidatePool.displayedCount,
+      hasMoreCandidates: hasMore,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('おすすめ終了')),
@@ -339,18 +347,21 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              hasMore ? '今日のおすすめはここまでです' : '候補をすべて見終わりました',
+              hasMore ? 'まだ決まりませんか？' : '候補をすべて見終わりました',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
-              hasMore
-                  ? 'この中で決めるか、まだ迷う場合は次の候補を見られます。'
-                  : '同じ候補をもう一度見るか、再検索してください。',
+              hasMore ? 'この中で決めるか、次の候補を見ることができます。' : '同じ候補をもう一度見るか、再検索してください。',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
+            if (showBreakAd) ...[
+              const SizedBox(height: 8),
+              const AdSlot(),
+              const SizedBox(height: 24),
+            ],
             if (reloadErrorMessage != null) ...[
               const SizedBox(height: 16),
               Text(
@@ -368,7 +379,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: showNextPage,
-                child: const Text('まだ迷う'),
+                child: const Text('さらに5店舗を見る'),
               ),
             ],
             const SizedBox(height: 12),
