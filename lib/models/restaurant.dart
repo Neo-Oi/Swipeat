@@ -1,3 +1,5 @@
+import 'restaurant_classification.dart';
+
 class Restaurant {
   const Restaurant({
     required this.name,
@@ -16,6 +18,9 @@ class Restaurant {
     this.userRatingCount,
     this.photoUrl,
     this.isOpenNow,
+    this.googlePrimaryType,
+    this.googleTypes = const [],
+    this.classification,
   });
 
   final String name;
@@ -35,4 +40,13 @@ class Restaurant {
   final int? userRatingCount;
   final String? photoUrl;
   final bool? isOpenNow;
+
+  /// Google Places の代表タイプ。分類品質の確認と再分類に使用する。
+  final String? googlePrimaryType;
+
+  /// Google Places の補助タイプ。Premium の代表ジャンル判定には直接使わない。
+  final List<String> googleTypes;
+
+  /// Swipeat 独自の分類結果。
+  final RestaurantClassification? classification;
 }

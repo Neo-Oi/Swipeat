@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/restaurant.dart';
-import '../utils/distance_calculator.dart';
+import 'google_place_parser.dart';
 
 class GooglePlacesService {
   static const String _endpoint =
@@ -32,7 +32,7 @@ class GooglePlacesService {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': _apiKey,
         'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.currentOpeningHours,places.types,places.photos',
+            'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.currentOpeningHours,places.primaryType,places.types,places.photos',
       },
       body: jsonEncode({
         if (includedTypes.isNotEmpty) 'includedTypes': includedTypes,
@@ -42,10 +42,7 @@ class GooglePlacesService {
         'rankPreference': 'DISTANCE',
         'locationRestriction': {
           'circle': {
-            'center': {
-              'latitude': latitude,
-              'longitude': longitude,
-            },
+            'center': {'latitude': latitude, 'longitude': longitude},
             'radius': radiusMeters.toDouble(),
           },
         },
@@ -60,58 +57,11 @@ class GooglePlacesService {
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     final places = decoded['places'] as List<dynamic>? ?? [];
-
-    return places.map((place) {
-      final placeMap = place as Map<String, dynamic>;
-
-      final location = placeMap['location'] as Map<String, dynamic>?;
-      final placeLatitude = (location?['latitude'] as num?)?.toDouble();
-      final placeLongitude = (location?['longitude'] as num?)?.toDouble();
-
-      final distanceMeters = placeLatitude != null && placeLongitude != null
-          ? DistanceCalculator.calculateDistanceMeters(
-              fromLatitude: latitude,
-              fromLongitude: longitude,
-              toLatitude: placeLatitude,
-              toLongitude: placeLongitude,
-            )
-          : 0;
-
-      final types = (placeMap['types'] as List<dynamic>? ?? [])
-          .map((type) => type.toString())
-          .toList();
-
-      final photos = placeMap['photos'] as List<dynamic>? ?? [];
-      final firstPhoto =
-          photos.isNotEmpty ? photos.first as Map<String, dynamic> : null;
-      final photoName = firstPhoto?['name']?.toString();
-
-      final photoUrl = photoName == null
-          ? null
-          : 'https://places.googleapis.com/v1/$photoName/media'
-              '?maxHeightPx=600'
-              '&maxWidthPx=800'
-              '&key=$_apiKey';
-
-      return Restaurant(
-        name: placeMap['displayName']?['text']?.toString() ?? '名称不明',
-        tags: _tagsFromTypes(types),
-        budget: '価格情報なし',
-        description: 'Google Maps から取得した周辺店舗です。',
-        companions: const ['一人', '友達', '恋人', '家族', '職場'],
-        budgets: const ['〜1000円', '1000〜2000円', '2000〜3000円', '気にしない'],
-        distanceMeters: distanceMeters,
-        categories: _categoriesFromTypes(types),
-        googlePlaceId: placeMap['id']?.toString(),
-        address: placeMap['formattedAddress']?.toString(),
-        latitude: placeLatitude,
-        longitude: placeLongitude,
-        rating: (placeMap['rating'] as num?)?.toDouble(),
-        userRatingCount: (placeMap['userRatingCount'] as num?)?.toInt(),
-        photoUrl: photoUrl,
-        isOpenNow: placeMap['currentOpeningHours']?['openNow'] as bool?,
-      );
-    }).toList();
+    return const GooglePlaceParser(apiKey: _apiKey).parseMany(
+      places: places,
+      originLatitude: latitude,
+      originLongitude: longitude,
+    );
   }
 
   static List<String> _includedTypesForMoodLabel(String moodLabel) {
@@ -134,11 +84,7 @@ class GooglePlacesService {
       case 'さっぱり':
         return ['japanese_restaurant', 'cafe'];
       case 'ガッツリ':
-        return [
-          'restaurant',
-          'chinese_restaurant',
-          'fast_food_restaurant',
-        ];
+        return ['restaurant', 'chinese_restaurant', 'fast_food_restaurant'];
       case 'すぐ食べたい':
         return ['fast_food_restaurant', 'cafe'];
       case 'ゆっくりしたい':
@@ -150,40 +96,5 @@ class GooglePlacesService {
       default:
         return ['restaurant'];
     }
-  }
-
-  static List<String> _categoriesFromTypes(List<String> types) {
-    final categories = <String>[];
-
-    if (types.contains('japanese_restaurant')) categories.add('和食');
-
-    if (types.contains('italian_restaurant') ||
-        types.contains('american_restaurant')) {
-      categories.add('洋食');
-    }
-
-    if (types.contains('chinese_restaurant')) categories.add('中華');
-    if (types.contains('cafe')) categories.add('カフェ');
-    if (types.contains('bakery')) categories.add('ベーカリー');
-    if (types.contains('fast_food_restaurant')) categories.add('ファストフード');
-
-    return categories.isEmpty ? ['その他'] : categories;
-  }
-
-  static List<String> _tagsFromTypes(List<String> types) {
-    final tags = <String>[];
-
-    if (types.contains('cafe')) tags.add('カフェ');
-    if (types.contains('bakery')) tags.add('ベーカリー');
-    if (types.contains('restaurant')) tags.add('飲食店');
-    if (types.contains('japanese_restaurant')) tags.add('和食');
-    if (types.contains('chinese_restaurant')) tags.add('中華');
-    if (types.contains('italian_restaurant')) tags.add('イタリアン');
-    if (types.contains('american_restaurant')) tags.add('洋食');
-    if (types.contains('fast_food_restaurant')) tags.add('短時間');
-
-    if (tags.isEmpty) tags.add('周辺店舗');
-
-    return tags;
   }
 }
