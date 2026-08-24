@@ -6,6 +6,6 @@ void main() {
     await tester.pumpWidget(const SwipeatApp());
 
     expect(find.text('Swipeat'), findsWidgets);
-    expect(find.text('今から決める'), findsOneWidget);
+    expect(find.text('今すぐ提案'), findsOneWidget);
   });
 }
