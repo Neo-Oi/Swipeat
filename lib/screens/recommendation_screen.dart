@@ -7,6 +7,7 @@ import '../services/candidate_pool.dart';
 import '../services/google_places_service.dart';
 import '../services/location_service.dart';
 import '../utils/distance_calculator.dart';
+import '../widgets/premium_empty_state.dart';
 import 'decision_screen.dart';
 
 class RecommendationScreen extends StatefulWidget {
@@ -277,6 +278,19 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Widget buildEmptyView() {
+    if (widget.poolMode == CandidatePoolMode.premium) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('候補なし')),
+        body: PremiumEmptyState(
+          onWidenDistance: () => Navigator.pop(context),
+          onChangeGenre: () => Navigator.pop(context),
+          onOmakase: () {
+            Navigator.popUntil(context, (route) => route.isFirst);
+          },
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('候補なし')),
       body: Padding(
