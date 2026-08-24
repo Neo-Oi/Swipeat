@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/restaurant.dart';
 import '../services/google_places_service.dart';
+import '../services/candidate_pool.dart';
 import '../services/location_service.dart';
 import '../utils/distance_calculator.dart';
 import 'decision_screen.dart';
@@ -15,6 +16,7 @@ class RecommendationScreen extends StatefulWidget {
     required this.distance,
     required this.category,
     required this.restaurants,
+    this.poolMode = CandidatePoolMode.free,
     this.noticeMessage = '',
   });
 
@@ -23,6 +25,7 @@ class RecommendationScreen extends StatefulWidget {
   final String distance;
   final String category;
   final List<Restaurant> restaurants;
+  final CandidatePoolMode poolMode;
   final String noticeMessage;
 
   @override
@@ -30,10 +33,6 @@ class RecommendationScreen extends StatefulWidget {
 }
 
 class _RecommendationScreenState extends State<RecommendationScreen> {
-  static const int pageSize = 5;
-
-  int currentIndex = 0;
-  int pageStartIndex = 0;
   double dragOffsetX = 0;
 
   bool isPageFinished = false;
@@ -42,14 +41,17 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   String? reloadErrorMessage;
   Position? currentPosition;
 
-  late List<Restaurant> restaurants;
+  late CandidatePool candidatePool;
 
   final ScrollController cardScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    restaurants = List<Restaurant>.from(widget.restaurants);
+    candidatePool = CandidatePool(
+      restaurants: widget.restaurants,
+      mode: widget.poolMode,
+    );
     loadCurrentPosition();
   }
 
@@ -69,17 +71,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     });
   }
 
-  int get currentPageEndIndex {
-    final endIndex = pageStartIndex + pageSize;
-    return endIndex > restaurants.length ? restaurants.length : endIndex;
-  }
-
   bool get hasNextPage {
-    return currentPageEndIndex < restaurants.length;
+    return candidatePool.hasNextBatch;
   }
 
-  Restaurant get currentRestaurant {
-    return restaurants[currentIndex];
+  Restaurant? get currentRestaurant {
+    return candidatePool.currentRestaurant;
   }
 
   int distanceLimit(String distance) {
@@ -122,12 +119,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     try {
       final fetchedRestaurants =
           await GooglePlacesService.searchNearbyRestaurants(
-        latitude: currentPosition!.latitude,
-        longitude: currentPosition!.longitude,
-        radiusMeters: distanceLimit(widget.distance),
-        category: widget.category,
-        openNowOnly: true,
-      );
+            latitude: currentPosition!.latitude,
+            longitude: currentPosition!.longitude,
+            radiusMeters: distanceLimit(widget.distance),
+            category: widget.category,
+            openNowOnly: true,
+          );
 
       final openRestaurants = fetchedRestaurants
           .where((restaurant) => restaurant.isOpenNow == true)
@@ -136,9 +133,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       if (!mounted) return;
 
       setState(() {
-        restaurants = openRestaurants;
-        currentIndex = 0;
-        pageStartIndex = 0;
+        candidatePool = CandidatePool(
+          restaurants: openRestaurants,
+          mode: widget.poolMode,
+        );
         dragOffsetX = 0;
         isPageFinished = false;
         isReloading = false;
@@ -178,7 +176,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     }
 
     if (widget.category != '気にしない' &&
-        restaurant.categories.any((category) => widget.category.contains(category))) {
+        restaurant.categories.any(
+          (category) => widget.category.contains(category),
+        )) {
       reasons.add('選んだカテゴリのいずれかに合っている');
     }
 
@@ -196,17 +196,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   void showNextRestaurant() {
-    if (currentIndex >= currentPageEndIndex - 1) {
-      setState(() {
-        dragOffsetX = 0;
-        isPageFinished = true;
-      });
-      return;
-    }
-
     setState(() {
       dragOffsetX = 0;
-      currentIndex += 1;
+      candidatePool.skipCurrent();
+      isPageFinished = candidatePool.isCurrentBatchFinished;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -216,7 +209,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   void restartCurrentPage() {
     setState(() {
-      currentIndex = pageStartIndex;
+      candidatePool.restartCurrentBatch();
       dragOffsetX = 0;
       isPageFinished = false;
     });
@@ -227,11 +220,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   void showNextPage() {
-    if (!hasNextPage) return;
+    if (!candidatePool.advanceToNextBatch()) return;
 
     setState(() {
-      pageStartIndex = currentPageEndIndex;
-      currentIndex = pageStartIndex;
       dragOffsetX = 0;
       isPageFinished = false;
       reloadErrorMessage = null;
@@ -249,9 +240,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => DecisionScreen(restaurant: restaurant),
-      ),
+      MaterialPageRoute(builder: (_) => DecisionScreen(restaurant: restaurant)),
     );
   }
 
@@ -263,7 +252,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   void handleDragEnd() {
     if (dragOffsetX > 120) {
-      decideRestaurant(currentRestaurant);
+      final restaurant = currentRestaurant;
+      if (restaurant != null) decideRestaurant(restaurant);
     } else if (dragOffsetX < -120) {
       showNextRestaurant();
     } else {
@@ -279,10 +269,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.orange.shade200),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 13),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 13)),
     );
   }
 
@@ -298,10 +285,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             const Text(
               '条件に合う営業中の店舗が見つかりませんでした',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
@@ -314,10 +298,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               Text(
                 reloadErrorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
             ],
             const SizedBox(height: 32),
@@ -347,6 +328,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   Widget buildPageFinishedView() {
     final hasMore = hasNextPage;
+    final isPremium = widget.poolMode == CandidatePoolMode.premium;
 
     return Scaffold(
       appBar: AppBar(title: const Text('おすすめ終了')),
@@ -359,10 +341,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             Text(
               hasMore ? '今日のおすすめはここまでです' : '候補をすべて見終わりました',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
@@ -377,16 +356,13 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               Text(
                 reloadErrorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
             ],
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: restartCurrentPage,
-              child: const Text('この5件をもう一度見る'),
+              child: Text(isPremium ? '候補をもう一度見る' : 'この5件をもう一度見る'),
             ),
             if (hasMore) ...[
               const SizedBox(height: 12),
@@ -415,7 +391,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (restaurants.isEmpty) {
+    if (candidatePool.length == 0) {
       return buildEmptyView();
     }
 
@@ -424,6 +400,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     }
 
     final restaurant = currentRestaurant;
+    if (restaurant == null) {
+      return buildPageFinishedView();
+    }
     final distanceMeters = calculatedDistance(restaurant);
     final reasons = recommendationReasons(
       restaurant: restaurant,
@@ -437,8 +416,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     final openText = restaurant.isOpenNow == true
         ? '営業中'
         : restaurant.isOpenNow == false
-            ? '営業時間外'
-            : '営業情報なし';
+        ? '営業時間外'
+        : '営業情報なし';
 
     return Scaffold(
       appBar: AppBar(title: const Text('おすすめ')),
