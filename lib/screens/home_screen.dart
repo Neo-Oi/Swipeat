@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../services/google_places_service.dart';
 import '../services/location_service.dart';
 import 'companion_select_screen.dart';
+import 'premium_genre_select_screen.dart';
 import 'recommendation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -42,10 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
         openNowOnly: true,
       );
 
-      final openRestaurants = restaurants
-          .where((restaurant) => restaurant.isOpenNow == true)
-          .toList()
-        ..shuffle();
+      final openRestaurants =
+          restaurants
+              .where((restaurant) => restaurant.isOpenNow == true)
+              .toList()
+            ..shuffle();
 
       if (!mounted) return;
 
@@ -77,18 +79,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void openDistanceSearch() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const CompanionSelectScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const CompanionSelectScreen()),
+    );
+  }
+
+  void openPremiumGenreSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PremiumGenreSelectScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Swipeat'),
-      ),
+      appBar: AppBar(title: const Text('Swipeat')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -110,19 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               'Swipeat',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 44,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             const Text(
               '探すより、決める。',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -134,10 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               '※ 営業中のお店のみ表示するため、朝や深夜は候補が少なくなる場合があります。',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.black54),
             ),
             const SizedBox(height: 40),
             ElevatedButton(
@@ -149,15 +145,17 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: isLoading ? null : openDistanceSearch,
               child: const Text('距離を選んで探す'),
             ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: isLoading ? null : openPremiumGenreSearch,
+              child: const Text('希望を指定して探す（Premium）'),
+            ),
             if (errorMessage != null) ...[
               const SizedBox(height: 24),
               Text(
                 errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
             ],
             const SizedBox(height: 40),
