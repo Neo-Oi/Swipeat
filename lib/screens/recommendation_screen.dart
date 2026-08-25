@@ -97,6 +97,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     return candidatePool.currentRestaurant;
   }
 
+  double get swipeFeedbackOpacity {
+    return (dragOffsetX.abs() / _swipeThreshold).clamp(0.0, 1.0).toDouble();
+  }
+
   int distanceLimit(String distance) {
     if (distance == '300m以内') return 300;
     if (distance == '500m以内') return 500;
@@ -526,39 +530,49 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.only(left: 24),
-                            color: Colors.green,
-                            child: const Text(
-                              'ここにする',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        key: const ValueKey('swipe-feedback'),
+                        duration: isDragging
+                            ? Duration.zero
+                            : const Duration(milliseconds: 180),
+                        curve: Curves.easeOutCubic,
+                        opacity: swipeFeedbackOpacity,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 24),
+                                color: Colors.green,
+                                child: const Text(
+                                  'ここにする',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 24),
-                            color: Colors.redAccent,
-                            child: const Text(
-                              '次へ',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 24),
+                                color: Colors.redAccent,
+                                child: const Text(
+                                  '次へ',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   AnimatedPositioned(
