@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/restaurant.dart';
@@ -36,11 +37,15 @@ class RecommendationScreen extends StatefulWidget {
 }
 
 class _RecommendationScreenState extends State<RecommendationScreen> {
+  static const _swipeThreshold = 112.0;
+  static const _dismissDuration = Duration(milliseconds: 180);
+
   double dragOffsetX = 0;
 
   bool isPageFinished = false;
   bool isReloading = false;
   bool isActionInProgress = false;
+  bool isDragging = false;
 
   String? reloadErrorMessage;
   Position? currentPosition;
@@ -208,23 +213,28 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     }
   }
 
-  void showNextRestaurant() {
+  Future<void> showNextRestaurant() async {
     if (isActionInProgress) return;
 
+    HapticFeedback.selectionClick();
     setState(() {
       isActionInProgress = true;
-      dragOffsetX = 0;
+      isDragging = false;
+      dragOffsetX = -MediaQuery.sizeOf(context).width;
+    });
+
+    await Future<void>.delayed(_dismissDuration);
+    if (!mounted) return;
+
+    setState(() {
       candidatePool.skipCurrent();
       isPageFinished = candidatePool.isCurrentBatchFinished;
+      dragOffsetX = 0;
+      isActionInProgress = false;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       resetCardScroll();
-      if (mounted) {
-        setState(() {
-          isActionInProgress = false;
-        });
-      }
     });
   }
 
@@ -254,37 +264,51 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     });
   }
 
-  void decideRestaurant(Restaurant restaurant) {
+  Future<void> decideRestaurant(Restaurant restaurant) async {
     if (isActionInProgress) return;
 
+    HapticFeedback.lightImpact();
     setState(() {
       isActionInProgress = true;
+      isDragging = false;
+      dragOffsetX = MediaQuery.sizeOf(context).width;
+    });
+
+    await Future<void>.delayed(_dismissDuration);
+    if (!mounted) return;
+
+    setState(() {
       dragOffsetX = 0;
     });
 
-    Navigator.push(
+    await Navigator.push<void>(
       context,
       MaterialPageRoute(builder: (_) => DecisionScreen(restaurant: restaurant)),
-    ).then((_) {
-      if (mounted) {
-        setState(() {
-          isActionInProgress = false;
-        });
-      }
-    });
+    );
+
+    if (mounted) {
+      setState(() {
+        isActionInProgress = false;
+      });
+    }
   }
 
   void resetCardPosition() {
     setState(() {
+      isDragging = false;
       dragOffsetX = 0;
     });
   }
 
   void handleDragEnd() {
-    if (dragOffsetX > 120) {
+    setState(() {
+      isDragging = false;
+    });
+
+    if (dragOffsetX > _swipeThreshold) {
       final restaurant = currentRestaurant;
       if (restaurant != null) decideRestaurant(restaurant);
-    } else if (dragOffsetX < -120) {
+    } else if (dragOffsetX < -_swipeThreshold) {
       showNextRestaurant();
     } else {
       resetCardPosition();
@@ -482,13 +506,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '${widget.companion}・${widget.budget}・${widget.distance}・${widget.category}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
-            ),
             if (widget.noticeMessage.isNotEmpty) ...[
-              const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -502,8 +520,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
+              const SizedBox(height: 12),
             ],
-            const SizedBox(height: 12),
             Expanded(
               child: Stack(
                 children: [
@@ -544,14 +562,24 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     ),
                   ),
                   AnimatedPositioned(
-                    duration: const Duration(milliseconds: 120),
+                    duration: isDragging
+                        ? Duration.zero
+                        : const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
                     left: dragOffsetX,
                     right: -dragOffsetX,
                     top: 0,
                     bottom: 0,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
+                      onHorizontalDragStart: (_) {
+                        if (isActionInProgress) return;
+                        setState(() {
+                          isDragging = true;
+                        });
+                      },
                       onHorizontalDragUpdate: (details) {
+                        if (isActionInProgress) return;
                         setState(() {
                           dragOffsetX += details.delta.dx;
                         });
@@ -560,6 +588,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                         handleDragEnd();
                       },
                       child: Card(
+                        key: const ValueKey('recommendation-card'),
                         elevation: 5,
                         clipBehavior: Clip.antiAlias,
                         shape: RoundedRectangleBorder(
@@ -573,12 +602,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                               if (restaurant.photoUrl != null)
                                 Image.network(
                                   restaurant.photoUrl!,
-                                  height: 220,
+                                  height: 260,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
-                                      height: 220,
+                                      height: 260,
                                       alignment: Alignment.center,
                                       color: Colors.grey.shade300,
                                       child: const Text('写真を表示できません'),
@@ -587,7 +616,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                                 )
                               else
                                 Container(
-                                  height: 220,
+                                  height: 260,
                                   alignment: Alignment.center,
                                   color: Colors.grey.shade300,
                                   child: const Text('写真なし'),
@@ -739,16 +768,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              '右スワイプ：ここにする / 左スワイプ：次へ',
+              '右スワイプ・緑：決定 / 左スワイプ・赤：見送る',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('条件を選び直す'),
             ),
           ],
         ),
