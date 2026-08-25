@@ -526,6 +526,67 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               ),
               const SizedBox(height: 12),
             ],
+            Semantics(
+              label: '左へスワイプで見送る、右へスワイプで決定',
+              child: Container(
+                key: const ValueKey('swipe-guidance'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '見送る',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Text(
+                      'スワイプ',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            '決定',
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.green.shade600,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: Stack(
                 children: [
@@ -781,11 +842,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              '右スワイプ・緑：決定 / 左スワイプ・赤：見送る',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
-            ),
           ],
         ),
       ),
