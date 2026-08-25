@@ -34,6 +34,8 @@ void main() {
 
     expect(find.text('決定'), findsOneWidget);
     expect(find.text('見送る'), findsOneWidget);
+    expect(find.text('一人・～1,000円・500m以内・気にしない'), findsNothing);
+    expect(find.text('条件を選び直す'), findsNothing);
 
     final skipButton = tester.widget<OutlinedButton>(
       find.byKey(const ValueKey('skip-action-button')),
@@ -58,5 +60,48 @@ void main() {
       decideButton.style!.backgroundColor!.resolve(const <WidgetState>{}),
       Colors.green.shade600,
     );
+  });
+
+  testWidgets('見送るボタンはカードを退場させて次候補を表示する', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecommendationScreen(
+          companion: '一人',
+          budget: '～1,000円',
+          distance: '500m以内',
+          category: '気にしない',
+          restaurants: [_restaurant('1店目'), _restaurant('2店目')],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('skip-action-button')));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.text('2店目'), findsOneWidget);
+    expect(find.byKey(const ValueKey('recommendation-card')), findsOneWidget);
+  });
+
+  testWidgets('決定ボタンはカード退場後に決定画面を開く', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecommendationScreen(
+          companion: '一人',
+          budget: '～1,000円',
+          distance: '500m以内',
+          category: '気にしない',
+          restaurants: [_restaurant('決定する店')],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('decide-action-button')));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+
+    expect(find.text('今日はここにしよう'), findsOneWidget);
+    expect(find.text('決定する店'), findsOneWidget);
   });
 }
