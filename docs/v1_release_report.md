@@ -30,7 +30,7 @@ Premium機能選択時にGoogleログインとサーバーentitlementを確認�
 
 ## 6. 広告表示位置
 
-Freeの5・10・15件後の区切り画面にだけAdSlotを置く。スワイプ中、写真、店舗情報、最終ページ、Premium/Trial/complimentary/developer entitlementには広告リクエストを行わない。UMP同意確認後のみAdMobを初期化する。
+Freeの5・10・15件後の区切り画面と、取得済みの全候補を見終えた最終画面にAdSlotを置く。スワイプ中、写真、店舗情報、Premium/Trial/complimentary/developer entitlementには広告リクエストを行わない。UMP同意確認後のみAdMobを初期化する。
 
 ## 7. Premium判定方式
 
