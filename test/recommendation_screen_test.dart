@@ -70,6 +70,14 @@ void main() {
       decideButton.style!.backgroundColor!.resolve(const <WidgetState>{}),
       Colors.green.shade600,
     );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('skip-action-button'))),
+      const Size(72, 72),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('decide-action-button'))),
+      const Size(72, 72),
+    );
   });
 
   testWidgets('見送るボタンはカードを退場させて次候補を表示する', (tester) async {

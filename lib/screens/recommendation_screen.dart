@@ -792,8 +792,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 88,
-                  height: 88,
+                  width: 72,
+                  height: 72,
                   child: OutlinedButton(
                     key: const ValueKey('skip-action-button'),
                     onPressed: isActionInProgress ? null : showNextRestaurant,
@@ -816,8 +816,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                 ),
                 const SizedBox(width: 24),
                 SizedBox(
-                  width: 88,
-                  height: 88,
+                  width: 72,
+                  height: 72,
                   child: ElevatedButton(
                     key: const ValueKey('decide-action-button'),
                     onPressed: isActionInProgress
