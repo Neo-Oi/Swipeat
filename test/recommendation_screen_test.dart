@@ -34,5 +34,29 @@ void main() {
 
     expect(find.text('決定'), findsOneWidget);
     expect(find.text('見送る'), findsOneWidget);
+
+    final skipButton = tester.widget<OutlinedButton>(
+      find.byKey(const ValueKey('skip-action-button')),
+    );
+    final decideButton = tester.widget<ElevatedButton>(
+      find.byKey(const ValueKey('decide-action-button')),
+    );
+
+    expect(
+      skipButton.style!.shape!.resolve(const <WidgetState>{}),
+      isA<CircleBorder>(),
+    );
+    expect(
+      decideButton.style!.shape!.resolve(const <WidgetState>{}),
+      isA<CircleBorder>(),
+    );
+    expect(
+      skipButton.style!.backgroundColor!.resolve(const <WidgetState>{}),
+      Colors.red.shade50,
+    );
+    expect(
+      decideButton.style!.backgroundColor!.resolve(const <WidgetState>{}),
+      Colors.green.shade600,
+    );
   });
 }

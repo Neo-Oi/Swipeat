@@ -685,20 +685,54 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             ),
             const SizedBox(height: 14),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
+                SizedBox(
+                  width: 88,
+                  height: 88,
                   child: OutlinedButton(
+                    key: const ValueKey('skip-action-button'),
                     onPressed: isActionInProgress ? null : showNextRestaurant,
-                    child: const Text('見送る'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      backgroundColor: Colors.red.shade50,
+                      side: BorderSide(color: Colors.red.shade400, width: 2),
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close_rounded, size: 28),
+                        SizedBox(height: 2),
+                        Text('見送る', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: 88,
+                  height: 88,
                   child: ElevatedButton(
+                    key: const ValueKey('decide-action-button'),
                     onPressed: isActionInProgress
                         ? null
                         : () => decideRestaurant(restaurant),
-                    child: const Text('決定'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.green.shade600,
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_rounded, size: 28),
+                        SizedBox(height: 2),
+                        Text('決定', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
                   ),
                 ),
               ],
