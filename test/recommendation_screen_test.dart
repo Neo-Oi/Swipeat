@@ -32,10 +32,20 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('決定'), findsOneWidget);
-    expect(find.text('見送る'), findsOneWidget);
+    expect(find.text('決定'), findsNWidgets(2));
+    expect(find.text('見送る'), findsNWidgets(2));
     expect(find.text('一人・～1,000円・500m以内・気にしない'), findsNothing);
     expect(find.text('条件を選び直す'), findsNothing);
+    expect(find.byKey(const ValueKey('swipe-guidance')), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('swipe-guidance'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('recommendation-card'))).dy,
+      ),
+    );
+    expect(find.text('右スワイプ・緑：決定 / 左スワイプ・赤：見送る'), findsNothing);
 
     final skipButton = tester.widget<OutlinedButton>(
       find.byKey(const ValueKey('skip-action-button')),
