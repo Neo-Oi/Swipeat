@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/restaurant.dart';
+import '../widgets/google_places_attribution.dart';
 
 class DecisionScreen extends StatelessWidget {
-  const DecisionScreen({
-    super.key,
-    required this.restaurant,
-  });
+  const DecisionScreen({super.key, required this.restaurant});
 
   final Restaurant restaurant;
 
@@ -36,13 +34,11 @@ class DecisionScreen extends StatelessWidget {
     final openText = restaurant.isOpenNow == true
         ? '営業中'
         : restaurant.isOpenNow == false
-            ? '営業時間外'
-            : '営業情報なし';
+        ? '営業時間外'
+        : '営業情報なし';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('決定'),
-      ),
+      appBar: AppBar(title: const Text('決定')),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -76,10 +72,7 @@ class DecisionScreen extends StatelessWidget {
                   const Text(
                     '今日はここにしよう',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -113,6 +106,9 @@ class DecisionScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 16),
                   ),
+                  if (restaurant.googlePlaceId != null &&
+                      restaurant.googlePlaceId!.isNotEmpty)
+                    const GooglePlacesAttribution(),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: openGoogleMaps,
@@ -136,9 +132,7 @@ class DecisionScreen extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.text,
-  });
+  const _InfoChip({required this.text});
 
   final String text;
 
@@ -151,10 +145,7 @@ class _InfoChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.orange.shade200),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 13),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 13)),
     );
   }
 }

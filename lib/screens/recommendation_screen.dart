@@ -8,6 +8,7 @@ import '../services/google_places_service.dart';
 import '../services/location_service.dart';
 import '../utils/distance_calculator.dart';
 import '../widgets/premium_empty_state.dart';
+import '../widgets/google_places_attribution.dart';
 import 'decision_screen.dart';
 
 class RecommendationScreen extends StatefulWidget {
@@ -637,6 +638,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                                       restaurant.description,
                                       style: const TextStyle(fontSize: 15),
                                     ),
+                                    if (restaurant.googlePlaceId != null &&
+                                        restaurant.googlePlaceId!.isNotEmpty)
+                                      const GooglePlacesAttribution(),
                                   ],
                                 ),
                               ),
