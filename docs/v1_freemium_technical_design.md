@@ -78,7 +78,7 @@ Authentication → PremiumEntitlement（サーバー判定）
   → placeId 重複排除・シャッフル
   → CandidatePool(Free)
   → 1〜5件をスワイプ
-  → 区切り画面 + 広告スロット
+  → 区切り画面 + 広告スロット（5・10・15件後、全候補終了時）
   → 取得済みの6〜10件を表示（再検索なし）
   → 最大20件まで繰り返す
 ```

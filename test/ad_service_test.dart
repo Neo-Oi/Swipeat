@@ -20,14 +20,22 @@ void main() {
       }
     });
 
-    test('does not show ads on the final page or in Premium', () {
+    test('shows an ad on the final Free page, but not in Premium', () {
       expect(
         service.shouldShowBreakAd(
           mode: CandidatePoolMode.free,
           completedCount: 20,
           hasMoreCandidates: false,
         ),
-        isFalse,
+        isTrue,
+      );
+      expect(
+        service.shouldShowBreakAd(
+          mode: CandidatePoolMode.free,
+          completedCount: 3,
+          hasMoreCandidates: false,
+        ),
+        isTrue,
       );
       expect(
         service.shouldShowBreakAd(

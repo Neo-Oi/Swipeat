@@ -17,10 +17,11 @@ class AdService {
     required int completedCount,
     required bool hasMoreCandidates,
   }) {
-    return mode == CandidatePoolMode.free &&
-        hasMoreCandidates &&
-        completedCount > 0 &&
-        completedCount < CandidatePool.maxCandidates &&
+    if (mode != CandidatePoolMode.free || completedCount <= 0) return false;
+
+    if (!hasMoreCandidates) return true;
+
+    return completedCount < CandidatePool.maxCandidates &&
         completedCount % CandidatePool.freePageSize == 0;
   }
 }
