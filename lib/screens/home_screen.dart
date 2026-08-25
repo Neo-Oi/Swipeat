@@ -5,6 +5,7 @@ import '../services/google_places_service.dart';
 import '../services/location_service.dart';
 import 'companion_select_screen.dart';
 import 'premium_genre_select_screen.dart';
+import 'privacy_policy_screen.dart';
 import 'recommendation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -149,6 +150,20 @@ class _HomeScreenState extends State<HomeScreen> {
             OutlinedButton(
               onPressed: isLoading ? null : openPremiumGenreSearch,
               child: const Text('希望を指定して探す（Premium）'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      );
+                    },
+              child: const Text('プライバシーポリシー・広告設定'),
             ),
             if (errorMessage != null) ...[
               const SizedBox(height: 24),

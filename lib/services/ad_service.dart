@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -32,14 +34,59 @@ class AdMobService {
 
   final AdMobConfiguration configuration;
   bool _initialized = false;
+  bool _adsAllowed = false;
 
   bool get isSupportedPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> initialize() async {
     if (!isSupportedPlatform || _initialized) return;
-    await MobileAds.instance.initialize();
-    _initialized = true;
+
+    try {
+      final consentInformation = ConsentInformation.instance;
+      final consentUpdated = Completer<bool>();
+      consentInformation.requestConsentInfoUpdate(
+        ConsentRequestParameters(),
+        () {
+          if (!consentUpdated.isCompleted) consentUpdated.complete(true);
+        },
+        (_) {
+          if (!consentUpdated.isCompleted) consentUpdated.complete(false);
+        },
+      );
+
+      if (!await consentUpdated.future) return;
+
+      await ConsentForm.loadAndShowConsentFormIfRequired((_) {});
+      if (!await consentInformation.canRequestAds()) return;
+
+      await MobileAds.instance.initialize();
+      _adsAllowed = true;
+      _initialized = true;
+    } catch (_) {
+      // Consent/SDK failures must never result in an ad request.
+      _adsAllowed = false;
+    }
+  }
+
+  bool get canLoadAds => _adsAllowed;
+
+  Future<bool> showPrivacyOptionsForm() async {
+    if (!isSupportedPlatform) return false;
+
+    try {
+      final requirement = await ConsentInformation.instance
+          .getPrivacyOptionsRequirementStatus();
+      if (requirement != PrivacyOptionsRequirementStatus.required) return false;
+
+      final dismissed = Completer<bool>();
+      await ConsentForm.showPrivacyOptionsForm((error) {
+        if (!dismissed.isCompleted) dismissed.complete(error == null);
+      });
+      return dismissed.future;
+    } catch (_) {
+      return false;
+    }
   }
 
   BannerAd? loadBanner({
@@ -111,9 +158,11 @@ class _AdSlotState extends State<AdSlot> {
     super.dispose();
   }
 
-  void loadAd() {
+  Future<void> loadAd() async {
     if (!widget.visible) return;
-    AdMobService.instance.initialize();
+    await AdMobService.instance.initialize();
+    if (!mounted || !AdMobService.instance.canLoadAds) return;
+
     bannerAd = AdMobService.instance.loadBanner(
       onLoaded: () {
         if (mounted) setState(() => adLoaded = true);
@@ -122,6 +171,7 @@ class _AdSlotState extends State<AdSlot> {
         if (mounted) setState(() => adLoaded = false);
       },
     );
+    if (mounted) setState(() {});
   }
 
   @override
