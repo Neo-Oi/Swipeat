@@ -83,6 +83,42 @@ void main() {
     expect(find.byKey(const ValueKey('recommendation-card')), findsOneWidget);
   });
 
+  testWidgets('背面のスワイプ色は静止時に隠れ、ドラッグ中だけ見える', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecommendationScreen(
+          companion: '一人',
+          budget: '～1,000円',
+          distance: '500m以内',
+          category: '気にしない',
+          restaurants: [_restaurant('テスト店舗')],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    AnimatedOpacity feedback() => tester.widget<AnimatedOpacity>(
+      find.byKey(const ValueKey('swipe-feedback')),
+    );
+
+    expect(feedback().opacity, 0);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('recommendation-card'))),
+    );
+    await gesture.moveBy(const Offset(20, 0));
+    await gesture.moveBy(const Offset(80, 0));
+    await tester.pump();
+
+    expect(feedback().opacity, greaterThan(0));
+
+    await gesture.moveBy(const Offset(-100, 0));
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(feedback().opacity, 0);
+  });
+
   testWidgets('決定ボタンはカード退場後に決定画面を開く', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
