@@ -40,6 +40,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
   bool isPageFinished = false;
   bool isReloading = false;
+  bool isActionInProgress = false;
 
   String? reloadErrorMessage;
   Position? currentPosition;
@@ -67,7 +68,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Future<void> loadCurrentPosition() async {
-    final position = await LocationService.getCurrentPosition();
+    Position? position;
+    try {
+      position = await LocationService.getCurrentPosition();
+    } catch (_) {
+      // A location provider can be unavailable while the recommendation card
+      // is still usable with the Place-provided distance.
+      return;
+    }
 
     if (!mounted) return;
 
@@ -201,7 +209,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   void showNextRestaurant() {
+    if (isActionInProgress) return;
+
     setState(() {
+      isActionInProgress = true;
       dragOffsetX = 0;
       candidatePool.skipCurrent();
       isPageFinished = candidatePool.isCurrentBatchFinished;
@@ -209,6 +220,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       resetCardScroll();
+      if (mounted) {
+        setState(() {
+          isActionInProgress = false;
+        });
+      }
     });
   }
 
@@ -239,14 +255,23 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   void decideRestaurant(Restaurant restaurant) {
+    if (isActionInProgress) return;
+
     setState(() {
+      isActionInProgress = true;
       dragOffsetX = 0;
     });
 
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => DecisionScreen(restaurant: restaurant)),
-    );
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          isActionInProgress = false;
+        });
+      }
+    });
   }
 
   void resetCardPosition() {
@@ -659,6 +684,26 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               ),
             ),
             const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isActionInProgress ? null : showNextRestaurant,
+                    child: const Text('見送る'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: isActionInProgress
+                        ? null
+                        : () => decideRestaurant(restaurant),
+                    child: const Text('決定'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             const Text(
               '右スワイプ：ここにする / 左スワイプ：次へ',
               textAlign: TextAlign.center,
