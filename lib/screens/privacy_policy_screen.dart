@@ -32,7 +32,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const _PolicySection(
             title: '取得する情報',
             body:
-                '現在地は周辺店舗の検索に使用します。Googleログインを使う場合は、アカウント識別子とログインに必要なプロフィール情報を取得します。Premium購入時は購入トークンを検証のためサーバーへ送信します。Free利用ではアカウント登録を必須にしません。',
+                '現在地は周辺店舗の検索と距離計算に使用します。検索時のみ取得し、バックグラウンドでは取得しません。Googleログインを使う場合は、アカウント識別子とログインに必要なプロフィール情報を取得します。Premium購入時は購入トークンを検証のためサーバーへ送信します。Free利用ではアカウント登録を必須にしません。',
           ),
           const _PolicySection(
             title: '広告と同意',

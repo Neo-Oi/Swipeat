@@ -75,7 +75,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Future<void> loadCurrentPosition() async {
     Position? position;
     try {
-      position = await LocationService.getCurrentPosition();
+      position = await LocationService.getCurrentPosition(
+        requestPermission: false,
+      );
     } catch (_) {
       // A location provider can be unavailable while the recommendation card
       // is still usable with the Place-provided distance.

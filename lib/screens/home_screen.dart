@@ -7,6 +7,7 @@ import 'companion_select_screen.dart';
 import 'premium_genre_select_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'recommendation_screen.dart';
+import '../widgets/location_permission_disclosure.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,19 +19,39 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = false;
   String? errorMessage;
+  LocationAccessFailure? locationFailure;
 
   Future<void> startRandomRecommendation() async {
     setState(() {
       isLoading = true;
       errorMessage = null;
+      locationFailure = null;
     });
 
+    if (await LocationService.needsPermissionDisclosure()) {
+      if (!mounted) return;
+      final accepted = await showLocationPermissionDisclosure(context);
+      if (!mounted) return;
+      if (!accepted) {
+        if (!mounted) return;
+        setState(() {
+          isLoading = false;
+          locationFailure = LocationAccessFailure.disclosureDeclined;
+          errorMessage = locationFailureMessage(locationFailure!);
+        });
+        return;
+      }
+    }
+
     try {
-      final Position? position = await LocationService.getCurrentPosition();
+      final locationResult = await LocationService.getCurrentPositionResult();
+      final Position? position = locationResult.position;
 
       if (position == null) {
         setState(() {
-          errorMessage = '現在地を取得できませんでした。位置情報の許可を確認してください。';
+          locationFailure =
+              locationResult.failure ?? LocationAccessFailure.unavailable;
+          errorMessage = locationFailureMessage(locationFailure!);
           isLoading = false;
         });
         return;
@@ -172,6 +193,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
+              if (locationFailure != null &&
+                  locationFailure !=
+                      LocationAccessFailure.disclosureDeclined) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () =>
+                      LocationService.openSettings(locationFailure!),
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('位置情報の設定を開く'),
+                ),
+              ],
             ],
             const SizedBox(height: 40),
             const Text(
