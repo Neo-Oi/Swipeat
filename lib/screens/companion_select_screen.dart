@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../services/google_places_service.dart';
 import '../services/location_service.dart';
+import '../widgets/location_permission_disclosure.dart';
 import 'recommendation_screen.dart';
 
 class CompanionSelectScreen extends StatefulWidget {
@@ -18,30 +19,44 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
   Position? currentPosition;
   bool isLoading = false;
   String? errorMessage;
+  LocationAccessFailure? locationFailure;
 
-  final List<String> distances = [
-    '300m以内',
-    '500m以内',
-    '1km以内',
-    '1.5km以内',
-  ];
+  final List<String> distances = ['300m以内', '500m以内', '1km以内', '1.5km以内'];
 
   @override
   void initState() {
     super.initState();
-    loadCurrentPosition();
   }
 
-  Future<Position?> loadCurrentPosition() async {
-    final position = await LocationService.getCurrentPosition();
+  Future<Position?> loadCurrentPosition({bool showDisclosure = false}) async {
+    if (showDisclosure && await LocationService.needsPermissionDisclosure()) {
+      if (!mounted) return null;
+      final accepted = await showLocationPermissionDisclosure(context);
+      if (!mounted) return null;
+      if (!accepted) {
+        if (mounted) {
+          setState(() {
+            locationFailure = LocationAccessFailure.disclosureDeclined;
+            errorMessage = locationFailureMessage(locationFailure!);
+          });
+        }
+        return null;
+      }
+    }
+
+    final locationResult = await LocationService.getCurrentPositionResult();
 
     if (!mounted) return null;
 
     setState(() {
-      currentPosition = position;
+      currentPosition = locationResult.position;
+      locationFailure = locationResult.failure;
+      if (locationResult.failure != null) {
+        errorMessage = locationFailureMessage(locationResult.failure!);
+      }
     });
 
-    return position;
+    return locationResult.position;
   }
 
   int distanceLimit(String distance) {
@@ -76,13 +91,14 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
     try {
       Position? position = currentPosition;
 
-      position ??= await loadCurrentPosition();
+      position ??= await loadCurrentPosition(showDisclosure: true);
 
       if (position == null) {
         if (!mounted) return;
 
         setState(() {
-          errorMessage = '現在地を取得できませんでした。位置情報の許可を確認してください。';
+          locationFailure ??= LocationAccessFailure.unavailable;
+          errorMessage = locationFailureMessage(locationFailure!);
           isLoading = false;
         });
         return;
@@ -91,8 +107,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
       var usedDistanceLabel = selectedDistance!;
       var noticeMessage = '';
 
-      var googleRestaurants =
-          await GooglePlacesService.searchNearbyRestaurants(
+      var googleRestaurants = await GooglePlacesService.searchNearbyRestaurants(
         latitude: position.latitude,
         longitude: position.longitude,
         radiusMeters: distanceLimit(selectedDistance!),
@@ -100,10 +115,11 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         openNowOnly: true,
       );
 
-      googleRestaurants = googleRestaurants
-          .where((restaurant) => restaurant.isOpenNow == true)
-          .toList()
-        ..shuffle();
+      googleRestaurants =
+          googleRestaurants
+              .where((restaurant) => restaurant.isOpenNow == true)
+              .toList()
+            ..shuffle();
 
       if (googleRestaurants.isEmpty) {
         final relaxedLimit = relaxedDistanceLimit(selectedDistance!);
@@ -111,8 +127,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
         usedDistanceLabel = '${relaxedLimit}m以内';
         noticeMessage = '候補が少なかったため、距離条件を広げました。';
 
-        googleRestaurants =
-            await GooglePlacesService.searchNearbyRestaurants(
+        googleRestaurants = await GooglePlacesService.searchNearbyRestaurants(
           latitude: position.latitude,
           longitude: position.longitude,
           radiusMeters: relaxedLimit,
@@ -120,10 +135,11 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
           openNowOnly: true,
         );
 
-        googleRestaurants = googleRestaurants
-            .where((restaurant) => restaurant.isOpenNow == true)
-            .toList()
-          ..shuffle();
+        googleRestaurants =
+            googleRestaurants
+                .where((restaurant) => restaurant.isOpenNow == true)
+                .toList()
+              ..shuffle();
       }
 
       if (!mounted) return;
@@ -207,9 +223,7 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('距離を選択'),
-      ),
+      appBar: AppBar(title: const Text('距離を選択')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -250,6 +264,17 @@ class _CompanionSelectScreenState extends State<CompanionSelectScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red, fontSize: 13),
               ),
+              if (locationFailure != null &&
+                  locationFailure !=
+                      LocationAccessFailure.disclosureDeclined) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () =>
+                      LocationService.openSettings(locationFailure!),
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('位置情報の設定を開く'),
+                ),
+              ],
             ],
             const SizedBox(height: 32),
             ElevatedButton(

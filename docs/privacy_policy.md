@@ -8,7 +8,7 @@
 
 | 情報 | 利用目的 | 送信先・保存先 |
 | --- | --- | --- |
-| 端末の位置情報 | 周辺の営業中店舗を検索し、距離を計算する | Google Places API、アプリ内の一時処理 |
+| 端末の位置情報 | 検索時に周辺の営業中店舗を検索し、距離を計算する（バックグラウンドでは取得しない） | Google Places API、アプリ内の一時処理 |
 | Googleアカウント識別子・プロフィール | Premium権限をアカウントへ紐付ける | Firebase Authentication、権限バックエンド |
 | Premium購入トークン | Google Play購入状態を検証し、権限を同期する | 権限バックエンド、Google Play Developer API |
 | 広告識別子・広告配信情報 | Free区切り画面のバナー広告を配信し、計測する | Google Mobile Ads（同意が必要な地域ではUMP同意後のみ） |
