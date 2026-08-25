@@ -368,7 +368,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              hasMore ? 'この中で決めるか、次の候補を見ることができます。' : '同じ候補をもう一度見るか、再検索してください。',
+              hasMore
+                  ? 'この中で決めるか、次の候補を見ることができます。'
+                  : isPremium
+                  ? '候補をもう一度見るか、再検索してください。'
+                  : '再検索するか、条件を変更してください。',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
@@ -386,10 +390,11 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               ),
             ],
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: restartCurrentPage,
-              child: Text(isPremium ? '候補をもう一度見る' : 'この5件をもう一度見る'),
-            ),
+            if (isPremium)
+              ElevatedButton(
+                onPressed: restartCurrentPage,
+                child: const Text('候補をもう一度見る'),
+              ),
             if (hasMore) ...[
               const SizedBox(height: 12),
               ElevatedButton(
