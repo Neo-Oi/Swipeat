@@ -116,102 +116,116 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Swipeat')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
-                child: Image.asset(
-                  'assets/images/swipeat_icon.png',
-                  width: 120,
-                  height: 120,
-                  fit: BoxFit.cover,
-                ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 700;
+            final iconSize = isCompact ? 88.0 : 104.0;
+            final horizontalPadding = isCompact ? 20.0 : 24.0;
+            final sectionGap = isCompact ? 8.0 : 12.0;
+
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: isCompact ? 12 : 20,
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Swipeat',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '探すより、決める。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '現在地周辺の営業中のお店から、まずはランダムに提案します。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '※ 営業中のお店のみ表示するため、朝や深夜は候補が少なくなる場合があります。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: isLoading ? null : startRandomRecommendation,
-              child: Text(isLoading ? '提案中...' : '今すぐ提案'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: isLoading ? null : openDistanceSearch,
-              child: const Text('距離を選んで探す'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: isLoading ? null : openPremiumGenreSearch,
-              child: const Text('希望を指定して探す（Premium）'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: isLoading
-                  ? null
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PrivacyPolicyScreen(),
-                        ),
-                      );
-                    },
-              child: const Text('プライバシーポリシー・広告設定'),
-            ),
-            if (errorMessage != null) ...[
-              const SizedBox(height: 24),
-              Text(
-                errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red, fontSize: 13),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/swipeat_icon.png',
+                        width: iconSize,
+                        height: iconSize,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: sectionGap),
+                  Text(
+                    'Swipeat',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: isCompact ? 36 : 40,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: isCompact ? 2 : 6),
+                  Text(
+                    '探すより、決める。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: isCompact ? 19 : 21,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: sectionGap),
+                  const Text(
+                    '現在地周辺の営業中のお店から、まずはランダムに提案します。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '※ 営業中のお店のみ表示するため、朝や深夜は候補が少なくなる場合があります。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  SizedBox(height: isCompact ? 12 : 20),
+                  ElevatedButton(
+                    onPressed: isLoading ? null : startRandomRecommendation,
+                    child: Text(isLoading ? '提案中...' : '今すぐ提案'),
+                  ),
+                  SizedBox(height: isCompact ? 6 : 8),
+                  OutlinedButton(
+                    onPressed: isLoading ? null : openDistanceSearch,
+                    child: const Text('距離を選んで探す'),
+                  ),
+                  SizedBox(height: isCompact ? 6 : 8),
+                  OutlinedButton(
+                    onPressed: isLoading ? null : openPremiumGenreSearch,
+                    child: const Text('希望を指定して探す（Premium）'),
+                  ),
+                  SizedBox(height: isCompact ? 2 : 6),
+                  TextButton(
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PrivacyPolicyScreen(),
+                              ),
+                            );
+                          },
+                    child: const Text('プライバシーポリシー・広告設定'),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                    if (locationFailure != null &&
+                        locationFailure !=
+                            LocationAccessFailure.disclosureDeclined) ...[
+                      const SizedBox(height: 4),
+                      TextButton.icon(
+                        onPressed: () =>
+                            LocationService.openSettings(locationFailure!),
+                        icon: const Icon(Icons.settings_outlined),
+                        label: const Text('位置情報の設定を開く'),
+                      ),
+                    ],
+                  ],
+                ],
               ),
-              if (locationFailure != null &&
-                  locationFailure !=
-                      LocationAccessFailure.disclosureDeclined) ...[
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () =>
-                      LocationService.openSettings(locationFailure!),
-                  icon: const Icon(Icons.settings_outlined),
-                  label: const Text('位置情報の設定を開く'),
-                ),
-              ],
-            ],
-            const SizedBox(height: 40),
-            const Text(
-              '迷ったら、まずは提案を見る。少ない候補から短時間で決めるためのアプリです。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
