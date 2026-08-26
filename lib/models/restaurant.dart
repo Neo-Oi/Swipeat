@@ -1,4 +1,5 @@
 import 'restaurant_classification.dart';
+import 'restaurant_photo.dart';
 
 class Restaurant {
   const Restaurant({
@@ -17,6 +18,7 @@ class Restaurant {
     this.rating,
     this.userRatingCount,
     this.photoUrl,
+    this.photos = const [],
     this.isOpenNow,
     this.googlePrimaryType,
     this.googleTypes = const [],
@@ -38,7 +40,10 @@ class Restaurant {
   final double? longitude;
   final double? rating;
   final int? userRatingCount;
+
+  /// 後方互換のため先頭写真URLを保持する。新規コードは [photos] を使う。
   final String? photoUrl;
+  final List<RestaurantPhoto> photos;
   final bool? isOpenNow;
 
   /// Google Places の代表タイプ。分類品質の確認と再分類に使用する。
@@ -49,4 +54,15 @@ class Restaurant {
 
   /// Swipeat 独自の分類結果。
   final RestaurantClassification? classification;
+
+  /// 表示する写真を最大3枚に制限する。写真APIの課金と先読みを抑える。
+  List<RestaurantPhoto> get displayPhotos {
+    if (photos.isNotEmpty) {
+      return photos.take(3).toList(growable: false);
+    }
+    if (photoUrl != null && photoUrl!.isNotEmpty) {
+      return <RestaurantPhoto>[RestaurantPhoto(url: photoUrl!)];
+    }
+    return const <RestaurantPhoto>[];
+  }
 }

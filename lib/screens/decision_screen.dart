@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/restaurant.dart';
 import '../widgets/google_places_attribution.dart';
+import '../widgets/restaurant_photo_gallery.dart';
 
 class DecisionScreen extends StatelessWidget {
   const DecisionScreen({super.key, required this.restaurant});
@@ -42,28 +43,12 @@ class DecisionScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            if (restaurant.photoUrl != null)
-              Image.network(
-                restaurant.photoUrl!,
-                height: 260,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 260,
-                    alignment: Alignment.center,
-                    color: Colors.grey.shade300,
-                    child: const Text('写真を表示できません'),
-                  );
-                },
-              )
-            else
-              Container(
-                height: 260,
-                alignment: Alignment.center,
-                color: Colors.grey.shade300,
-                child: const Text('写真なし'),
+            RestaurantPhotoGallery(
+              key: ValueKey(
+                'restaurant-photo-${restaurant.googlePlaceId ?? restaurant.name}',
               ),
+              photos: restaurant.displayPhotos,
+            ),
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(

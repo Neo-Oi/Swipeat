@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swipeat/models/restaurant.dart';
+import 'package:swipeat/models/restaurant_photo.dart';
 import 'package:swipeat/screens/recommendation_screen.dart';
 
-Restaurant _restaurant(String name) {
+Restaurant _restaurant(String name, {List<RestaurantPhoto> photos = const []}) {
   return Restaurant(
     name: name,
     tags: const ['テスト'],
@@ -14,6 +15,7 @@ Restaurant _restaurant(String name) {
     distanceMeters: 300,
     categories: const ['気にしない'],
     isOpenNow: true,
+    photos: photos,
   );
 }
 
@@ -165,5 +167,33 @@ void main() {
 
     expect(find.text('今日はここにしよう'), findsOneWidget);
     expect(find.text('決定する店'), findsOneWidget);
+  });
+
+  testWidgets('候補カードの写真タップで次の写真だけを読み込む', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecommendationScreen(
+          companion: '一人',
+          budget: '～1,000円',
+          distance: '500m以内',
+          category: '気にしない',
+          restaurants: [
+            _restaurant(
+              '写真付き店舗',
+              photos: const [
+                RestaurantPhoto(url: 'https://example.test/photo-1.jpg'),
+                RestaurantPhoto(url: 'https://example.test/photo-2.jpg'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('1 / 2'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('restaurant-photo-gallery')));
+    await tester.pump();
+    expect(find.text('2 / 2'), findsOneWidget);
   });
 }
