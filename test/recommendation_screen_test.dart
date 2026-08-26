@@ -121,6 +121,10 @@ void main() {
 
     expect(feedback().opacity, 0);
 
+    Container feedbackSurface() => tester.widget<Container>(
+      find.byKey(const ValueKey('swipe-feedback-surface')),
+    );
+
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('recommendation-card'))),
     );
@@ -129,8 +133,12 @@ void main() {
     await tester.pump();
 
     expect(feedback().opacity, greaterThan(0));
+    expect(feedbackSurface().color, Colors.green);
 
-    await gesture.moveBy(const Offset(-100, 0));
+    await gesture.moveBy(const Offset(-160, 0));
+    await tester.pump();
+    expect(feedbackSurface().color, Colors.redAccent);
+
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 200));
 
