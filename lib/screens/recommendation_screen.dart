@@ -601,39 +601,26 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             : const Duration(milliseconds: 180),
                         curve: Curves.easeOutCubic,
                         opacity: swipeFeedbackOpacity,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.only(left: 24),
-                                color: Colors.green,
-                                child: const Text(
-                                  'ここにする',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                        child: Container(
+                          key: const ValueKey('swipe-feedback-surface'),
+                          alignment: dragOffsetX > 0
+                              ? Alignment.centerLeft
+                              : Alignment.centerRight,
+                          padding: EdgeInsets.only(
+                            left: dragOffsetX > 0 ? 24 : 0,
+                            right: dragOffsetX > 0 ? 0 : 24,
+                          ),
+                          color: dragOffsetX > 0
+                              ? Colors.green
+                              : Colors.redAccent,
+                          child: Text(
+                            dragOffsetX > 0 ? 'ここにする' : '次へ',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                             ),
-                            Expanded(
-                              child: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 24),
-                                color: Colors.redAccent,
-                                child: const Text(
-                                  '次へ',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
