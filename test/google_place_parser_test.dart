@@ -10,6 +10,7 @@ void main() {
     required String name,
     String primaryType = 'restaurant',
     List<String> types = const ['restaurant'],
+    List<Map<String, dynamic>> photos = const [],
   }) {
     return <String, dynamic>{
       'id': id,
@@ -21,6 +22,7 @@ void main() {
       'rating': 4.2,
       'userRatingCount': 12,
       'currentOpeningHours': <String, dynamic>{'openNow': true},
+      if (photos.isNotEmpty) 'photos': photos,
     };
   }
 
@@ -88,5 +90,39 @@ void main() {
       restaurants.single.classification?.primaryGenre,
       RestaurantGenre.other,
     );
+  });
+
+  test('keeps at most three photos and their author attributions', () {
+    final restaurant = parser.parse(
+      place: place(
+        id: 'photo-place',
+        name: '写真店舗',
+        photos: [
+          <String, dynamic>{
+            'name': 'places/photo-place/photos/photo-1',
+            'authorAttributions': [
+              <String, dynamic>{
+                'displayName': '投稿者A',
+                'uri': 'https://example.test/author-a',
+              },
+            ],
+          },
+          <String, dynamic>{'name': 'places/photo-place/photos/photo-2'},
+          <String, dynamic>{'name': 'places/photo-place/photos/photo-3'},
+          <String, dynamic>{'name': 'places/photo-place/photos/photo-4'},
+        ],
+      ),
+      originLatitude: 35.0,
+      originLongitude: 135.0,
+    );
+
+    expect(restaurant.photos, hasLength(3));
+    expect(restaurant.displayPhotos, hasLength(3));
+    expect(restaurant.photos.first.url, contains('photo-1'));
+    expect(
+      restaurant.photos.first.authorAttributions.single.displayName,
+      '投稿者A',
+    );
+    expect(restaurant.photos.last.url, contains('photo-3'));
   });
 }

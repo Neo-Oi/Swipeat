@@ -1,4 +1,5 @@
 import '../models/restaurant.dart';
+import '../models/restaurant_photo.dart';
 import '../services/restaurant_classifier.dart';
 import '../utils/distance_calculator.dart';
 
@@ -47,17 +48,8 @@ class GooglePlaceParser {
     );
     classificationResult.logDebug();
 
-    final photos = place['photos'] as List<dynamic>? ?? [];
-    final firstPhoto = photos.isNotEmpty
-        ? photos.first as Map<String, dynamic>
-        : null;
-    final photoName = firstPhoto?['name']?.toString();
-    final photoUrl = photoName == null
-        ? null
-        : 'https://places.googleapis.com/v1/$photoName/media'
-              '?maxHeightPx=600'
-              '&maxWidthPx=800'
-              '&key=$apiKey';
+    final photos = _parsePhotos(place['photos'] as List<dynamic>? ?? []);
+    final photoUrl = photos.isEmpty ? null : photos.first.url;
 
     return Restaurant(
       name: name,
@@ -75,11 +67,52 @@ class GooglePlaceParser {
       rating: (place['rating'] as num?)?.toDouble(),
       userRatingCount: (place['userRatingCount'] as num?)?.toInt(),
       photoUrl: photoUrl,
+      photos: photos,
       isOpenNow: place['currentOpeningHours']?['openNow'] as bool?,
       googlePrimaryType: primaryType,
       googleTypes: types,
       classification: classificationResult.classification,
     );
+  }
+
+  List<RestaurantPhoto> _parsePhotos(List<dynamic> rawPhotos) {
+    final parsedPhotos = <RestaurantPhoto>[];
+
+    for (final rawPhoto in rawPhotos) {
+      if (parsedPhotos.length == 3) break;
+      if (rawPhoto is! Map<String, dynamic>) continue;
+
+      final photoName = rawPhoto['name']?.toString();
+      if (photoName == null || photoName.isEmpty) continue;
+
+      final rawAttributions =
+          rawPhoto['authorAttributions'] as List<dynamic>? ?? [];
+      final attributions = rawAttributions
+          .whereType<Map<String, dynamic>>()
+          .map((attribution) {
+            final displayName = attribution['displayName']?.toString() ?? '';
+            if (displayName.isEmpty) return null;
+            return RestaurantPhotoAttribution(
+              displayName: displayName,
+              uri: attribution['uri']?.toString(),
+            );
+          })
+          .whereType<RestaurantPhotoAttribution>()
+          .toList(growable: false);
+
+      parsedPhotos.add(
+        RestaurantPhoto(
+          url:
+              'https://places.googleapis.com/v1/$photoName/media'
+              '?maxHeightPx=600'
+              '&maxWidthPx=800'
+              '&key=$apiKey',
+          authorAttributions: attributions,
+        ),
+      );
+    }
+
+    return List<RestaurantPhoto>.unmodifiable(parsedPhotos);
   }
 
   /// Place ID が同じレスポンスを一度だけ Restaurant へ変換する。
